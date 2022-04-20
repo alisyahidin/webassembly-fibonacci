@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+</head>
+
+<body>
+  <button id="wasm">Click wasm</button>
+  <button id="js">Click js</button>
+  <button id="js-memo">Click js memo</button>
+  <h1 id="content">
+  </h1>
+
+  <script>
+    function updateContent(val) {
+      const element = document.getElementById("content")
+      element.innerHTML = parseFloat(val)
+    }
+
+    const fibNumber = 44
+    const btnWasm = document.getElementById('wasm')
+    const btnJs = document.getElementById('js')
+    const btnJsMemo = document.getElementById('js-memo')
+    btnJs.addEventListener('click', () => {
+      console.time('js')
+      const start = window.performance.now()
+      const val = fibJs(fibNumber)
+      console.log(val)
+      const end = window.performance.now()
+      updateContent(end - start)
+      console.timeEnd('js')
+    })
+    btnJsMemo.addEventListener('click', () => {
+      console.time('js-memo')
+      const start = window.performance.now()
+      const val = fibJsMemo(fibNumber)
+      console.log(val)
+      const end = window.performance.now()
+      updateContent(end - start)
+      console.timeEnd('js-memo')
+    })
+
+    const fibJsMemo = (num, memo = {}) => {
+      if (memo[num]) return memo[num]
+      if (num <= 2) {
+        memo[num] = 1
+        return 1
+      }
+      memo[num] = fibJsMemo(num - 1, memo) + fibJsMemo(num - 2, memo)
+      return memo[num]
+    }
+
+    function fibJs(num, memo) {
+      if (num <= 2) return 1
+      return fibJs(num - 1) + fibJs(num - 2)
+    }
+
+    fetch("./pkg/fib_wasm_bg.wasm")
+      .then(response => response.arrayBuffer())
+      .then(buffer => WebAssembly.instantiate(buffer))
+      .then(wasm => {
+        console.log('wasm-func', wasm.instance.exports.fib)
+        console.log('js-func', fibJs)
+        btnWasm.addEventListener('click', () => {
+          console.time('wasm')
+          const start = window.performance.now()
+          const val = wasm.instance.exports.fib(fibNumber)
+          console.log(val)
+          const end = window.performance.now()
+          updateContent(end - start)
+          console.timeEnd('wasm')
+        })
+      });
+  </script>
+</body>
+
+</html>
